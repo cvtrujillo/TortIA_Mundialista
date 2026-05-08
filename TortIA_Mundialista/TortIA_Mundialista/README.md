@@ -132,4 +132,4 @@ Para activar GitHub Pages en tu repo:
 
 ## 📝 Licencia
 
-MIT © Carlos Trujillo
+MIT © Carol Trujillo
