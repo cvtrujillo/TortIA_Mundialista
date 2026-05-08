@@ -1,4 +1,4 @@
-from __future__ import annotations
+code = """from __future__ import annotations
 import time
 import pandas as pd
 import requests
@@ -60,3 +60,8 @@ class FootballDataSource:
             "home_xg": None,
             "away_xg": None,
         }
+"""
+
+with open("etl/sources/football_data.py", "w", encoding="utf-8") as f:
+    f.write(code)
+print("OK - archivo sobreescrito")
