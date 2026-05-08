@@ -1,0 +1,95 @@
+TORTÍA MUNDIALISTA — GUÍA DE USO LOCAL
+=======================================
+
+REQUISITOS (solo verificar una vez)
+-------------------------------------
+- Python 3.11+  → verificar con: python --version
+- Node 20+      → verificar con: node --version
+- Git           → verificar con: git --version
+
+
+CADA VEZ QUE QUIERAS USARLO
+------------------------------
+
+PASO 1 — Abre PowerShell (busca "PowerShell" en el menú inicio)
+
+PASO 2 — Abre UNA SEGUNDA ventana de PowerShell
+         (clic derecho en la barra de tareas → Windows PowerShell)
+
+
+PASO 3 — En la PRIMERA ventana (Backend / API):
+
+    cd C:\Users\trujicao\TortIA_Mundialista\TortIA_Mundialista\TortIA_Mundialista\backend
+    python -m uvicorn api.main:app --reload --port 8000
+
+    Espera hasta ver:
+    "Application startup complete."
+
+
+PASO 4 — En la SEGUNDA ventana (Frontend):
+
+    cd C:\Users\trujicao\TortIA_Mundialista\TortIA_Mundialista\TortIA_Mundialista\frontend
+    npm run dev
+
+    Espera hasta ver:
+    "Local: http://localhost:5173"
+
+
+PASO 5 — Abre el navegador en:
+
+    http://localhost:5173
+
+
+PASO 6 — Para cerrar todo cuando termines:
+    En cada ventana de PowerShell presiona Ctrl+C
+
+
+---------------------------------------
+NOTA IMPORTANTE SOBRE LA URL PÚBLICA
+---------------------------------------
+La URL de GitHub Pages:
+https://cvtrujillo.github.io/TortIA_Mundialista/
+
+Muestra la interfaz siempre, PERO las predicciones
+solo funcionan si tienes el backend corriendo en tu PC
+(Paso 3 activo).
+
+Para que las predicciones funcionen sin tu PC encendida
+se necesita desplegar el backend en la nube (Railway/AWS).
+
+
+---------------------------------------
+SI QUIERES ACTUALIZAR LOS DATOS
+---------------------------------------
+(Hacer esto cada mes o antes de partidos importantes)
+
+En la ventana del Backend, antes de arrancar uvicorn:
+
+    cd C:\Users\trujicao\TortIA_Mundialista\TortIA_Mundialista\TortIA_Mundialista\backend
+    python -m scripts.train
+
+Tarda ~15-20 minutos. Cuando termine dice:
+"Entrenamiento completado"
+
+Luego sigue con los pasos normales.
+
+
+---------------------------------------
+SI SUBES CAMBIOS AL CÓDIGO
+---------------------------------------
+    cd C:\Users\trujicao\TortIA_Mundialista
+    git add .
+    git commit -m "descripcion del cambio"
+    git push origin main
+
+El frontend en GitHub Pages se actualiza automáticamente
+en ~2 minutos.
+
+
+---------------------------------------
+LINKS ÚTILES
+---------------------------------------
+Frontend local:    http://localhost:5173
+API docs local:    http://localhost:8000/docs
+Frontend público:  https://cvtrujillo.github.io/TortIA_Mundialista/
+Repo GitHub:       https://github.com/cvtrujillo/TortIA_Mundialista
