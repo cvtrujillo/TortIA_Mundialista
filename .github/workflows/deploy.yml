@@ -1,0 +1,154 @@
+name: CI/CD — TortIA Mundialista
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ── Backend tests ────────────────────────────────────────────────────────────
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create dummy artifacts (para que la API arranque en tests)
+        run: |
+          mkdir -p artifacts
+          python -c "
+          import joblib, numpy as np
+          from models.poisson import DixonColesPoisson
+          from models.xgb_classifier import XGBOutcomeClassifier
+          # Guardar objetos vacíos (tests usan mocks)
+          p = DixonColesPoisson()
+          p.is_fitted = False
+          joblib.dump(p.__dict__, 'artifacts/poisson_model.pkl')
+          "
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short --cov=. --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+
+  # ── Frontend build ───────────────────────────────────────────────────────────
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'http://localhost:8000' }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  # ── Deploy to GitHub Pages ───────────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy to GitHub Pages
+    needs: [build-frontend, test-backend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  # ── Deploy Lambda (solo si existen secrets de AWS) ───────────────────────────
+  deploy-api:
+    name: Deploy API to Lambda
+    needs: test-backend
+    runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      vars.DEPLOY_LAMBDA == 'true'
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Package Lambda function
+        run: |
+          pip install -r requirements.txt -t package/
+          cp -r api etl models simulation config.py lambda_handler.py package/
+          cd package && zip -r ../function.zip . -q
+          cd .. && echo "Package size: $(du -sh function.zip | cut -f1)"
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name tortia-mundialista-api \
+            --zip-file fileb://function.zip \
+            --output json
+
+      - name: Update Lambda config
+        run: |
+          aws lambda update-function-configuration \
+            --function-name tortia-mundialista-api \
+            --environment "Variables={
+              FOOTBALL_DATA_TOKEN=${{ secrets.FOOTBALL_DATA_TOKEN }},
+              RAPIDAPI_KEY=${{ secrets.RAPIDAPI_KEY }},
+              ENVIRONMENT=production,
+              S3_BUCKET=${{ secrets.S3_BUCKET }}
+            }" \
+            --output json
+
+      - name: Smoke test
+        run: |
+          sleep 10
+          LAMBDA_URL="${{ secrets.LAMBDA_URL }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$LAMBDA_URL/health")
+          echo "Health check status: $STATUS"
+          [ "$STATUS" = "200" ] && echo "✅ Deploy OK" || (echo "❌ Deploy failed" && exit 1)
