@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Data & Models (pesados — usar DVC o S3)
+backend/data/
+backend/artifacts/*.pkl
+backend/artifacts/*.bin
+backend/artifacts/*.model
+!backend/artifacts/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Env files
+.env
+.env.local
+.env.production
+
+# Lambda packaging
+backend/package/
+backend/function.zip
+backend/layer.zip
+backend/lambda_layer/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Optuna
+optuna.db
